@@ -1,4 +1,4 @@
-package com.lianjiehao.audioandvideopractice.shape
+package com.lianjiehao.audioandvideopractice.drawer
 
 import android.opengl.GLES20
 import com.lianjiehao.audioandvideopractice.utils.ShaderHelper
@@ -55,12 +55,17 @@ class Square {
 
     fun draw() {
         GLES20.glUseProgram(program)
+
         val positionHandle = GLES20.glGetAttribLocation(program, "aPosition")
         GLES20.glEnableVertexAttribArray(positionHandle)
         //设置着色器参数， 第二个参数表示一个顶点包含的数据数量，这里为xy，所以为2
         GLES20.glVertexAttribPointer(positionHandle, 2, GLES20.GL_FLOAT, false, 0, vertexBuffer)
+
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+
+        //释放资源
         GLES20.glDisableVertexAttribArray(positionHandle)
+        GLES20.glDeleteProgram(program)
     }
 
 

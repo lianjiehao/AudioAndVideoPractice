@@ -1,15 +1,17 @@
 package com.lianjiehao.audioandvideopractice
 
+import android.graphics.Bitmap
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
-import com.lianjiehao.audioandvideopractice.drawer.Square
+import com.lianjiehao.audioandvideopractice.drawer.BitmapDrawer
+import com.lianjiehao.audioandvideopractice.utils.OpenglHelper
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
-class MyGLRenderer : GLSurfaceView.Renderer {
-    private lateinit var square: Square
+class MyGLRenderer(val bitmap: Bitmap) : GLSurfaceView.Renderer {
+    private lateinit var bitmapDrawer: BitmapDrawer
     override fun onDrawFrame(gl: GL10?) {
-        square.draw()
+        bitmapDrawer.draw()
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
@@ -17,7 +19,8 @@ class MyGLRenderer : GLSurfaceView.Renderer {
     }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        square = Square()
+        val textureId = OpenglHelper.createTextureIds(1)[0]
+        bitmapDrawer = BitmapDrawer(textureId, bitmap)
     }
 
 }
