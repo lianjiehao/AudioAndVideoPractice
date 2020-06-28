@@ -189,18 +189,6 @@ class BitmapDrawer(val textureId: Int, val bitmap: Bitmap) {
             GLES20.GL_TEXTURE_WRAP_T,
             GLES20.GL_CLAMP_TO_EDGE
         )
-        //生成 2D 纹理。参数 level 表示执行细节级别。0 是最基本的图像级别，n 表示第 N 级贴图细化级别。
-        GLES20.glTexImage2D(
-            GLES20.GL_TEXTURE_2D,
-            0,
-            GLES20.GL_RGBA,
-            imageWidth,
-            imageHeight,
-            0,
-            GLES20.GL_RGBA,
-            GLES20.GL_UNSIGNED_BYTE,
-            null
-        )
         //绑定图片到被激活的纹理单元 -> 渲染。
         GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
     }
