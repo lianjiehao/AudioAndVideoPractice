@@ -1,16 +1,20 @@
 package com.lianjiehao.audioandvideopractice.drawer
 
-import android.graphics.Bitmap
+import android.content.Context
 import android.opengl.GLES20
-import android.opengl.GLUtils
 import android.opengl.Matrix
+import com.lianjiehao.audioandvideopractice.R
 import com.lianjiehao.audioandvideopractice.utils.OpenglHelper
+import pl.droidsonroids.gif.GifOptions
+import pl.droidsonroids.gif.GifTexImage2D
+import pl.droidsonroids.gif.InputSource
+import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 
 
-class BitmapDrawer(val textureId: Int, val bitmap: Bitmap) {
+class GifDrawer(val textureId: Int, val context: Context) {
     private val vertexShaderCode: String =
         //顶点坐标
         "attribute vec4 aPosition;" +
@@ -66,20 +70,22 @@ class BitmapDrawer(val textureId: Int, val bitmap: Bitmap) {
     private var textureHandle = 0
     private var vertexMatrixHandler: Int = -1
 
+    private lateinit var gifTexImage2D: GifTexImage2D
+
     var worldWidth: Int = 0
     var worldHeight: Int = 0
-    var imageWidth: Int = 0
-    var imageHeight: Int = 0
+    var gifWidth: Int = 0
+    var gifHeight: Int = 0
 
     //计算坐标变换矩阵，防止图片拉伸。
     private val matrix: FloatArray by lazy {
         val orthoM = FloatArray(16)
-        if (imageWidth != -1 && imageHeight != -1 &&
+        if (gifWidth != -1 && gifHeight != -1 &&
             worldWidth != -1 && worldHeight != -1
         ) {
-            val originRatio = imageWidth / imageHeight.toFloat()
+            val originRatio = gifWidth / gifHeight.toFloat()
             val worldRatio = worldWidth / worldHeight.toFloat()
-            if (imageWidth > worldWidth || imageHeight > worldHeight) {
+            if (gifWidth > worldWidth || gifHeight > worldHeight) {
                 if (worldWidth > worldHeight) {
                     if (originRatio > worldRatio) {
                         val actualRatio = originRatio / worldRatio
@@ -118,8 +124,8 @@ class BitmapDrawer(val textureId: Int, val bitmap: Bitmap) {
                     }
                 }
             } else {
-                val wRatio = worldWidth / imageWidth.toFloat()
-                val hRatio = worldHeight / imageHeight.toFloat()
+                val wRatio = worldWidth / gifWidth.toFloat()
+                val hRatio = worldHeight / gifHeight.toFloat()
                 Matrix.orthoM(
                     orthoM, 0,
                     -wRatio, wRatio,
@@ -132,8 +138,25 @@ class BitmapDrawer(val textureId: Int, val bitmap: Bitmap) {
     }
 
     init {
+        initGif()
         initializeBuffers()
         initializeProgram()
+    }
+
+    private fun initGif() {
+        try {
+            val options = GifOptions()
+            options.setInIsOpaque(false)
+            gifTexImage2D = GifTexImage2D(
+                InputSource.ResourcesSource(context.resources, R.drawable.anim_test),
+                options
+            )
+            gifTexImage2D.startDecoderThread()
+            gifWidth = gifTexImage2D.width
+            gifHeight = gifTexImage2D.height
+        } catch (e: IOException) {
+            throw IllegalStateException(e)
+        }
     }
 
     private fun initializeBuffers() {
@@ -194,15 +217,15 @@ class BitmapDrawer(val textureId: Int, val bitmap: Bitmap) {
             GLES20.GL_TEXTURE_2D,
             0,
             GLES20.GL_RGBA,
-            imageWidth,
-            imageHeight,
+            gifWidth,
+            gifHeight,
             0,
             GLES20.GL_RGBA,
             GLES20.GL_UNSIGNED_BYTE,
             null
         )
-        //绑定图片到被激活的纹理单元 -> 渲染。
-        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
+        //绑定资源到被激活的纹理单元 -> 渲染
+        gifTexImage2D.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0)
     }
 
     fun draw() {
@@ -238,6 +261,10 @@ class BitmapDrawer(val textureId: Int, val bitmap: Bitmap) {
         GLES20.glDisableVertexAttribArray(textureHandle)
         GLES20.glDeleteTextures(1, intArrayOf(textureId), 0)
         GLES20.glDeleteProgram(program)
+    }
+
+    fun releaseGif() {
+        gifTexImage2D?.recycle()
     }
 
 }

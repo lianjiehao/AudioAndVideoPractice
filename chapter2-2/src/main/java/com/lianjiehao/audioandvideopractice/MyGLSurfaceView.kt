@@ -2,6 +2,7 @@ package com.lianjiehao.audioandvideopractice
 
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 
 class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
@@ -15,4 +16,5 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
         // 渲染模式设置为："仅当绘制数据发生变化时绘制视图"。
         renderMode = RENDERMODE_WHEN_DIRTY
     }
+
 }

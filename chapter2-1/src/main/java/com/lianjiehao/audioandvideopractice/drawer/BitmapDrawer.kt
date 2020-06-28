@@ -91,9 +91,10 @@ class BitmapDrawer(val textureId: Int, val bitmap: Bitmap) {
     }
 
     /**
-     * 激活并绑定纹理
+     * 纹理渲染
      */
-    private fun enableAndBindTexture() {
+    private fun renderTexture() {
+        textureHandle = GLES20.glGetUniformLocation(program, "uTexture")
         //激活指定纹理单元
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         //绑定纹理ID到纹理单元
@@ -121,7 +122,19 @@ class BitmapDrawer(val textureId: Int, val bitmap: Bitmap) {
             GLES20.GL_TEXTURE_WRAP_T,
             GLES20.GL_CLAMP_TO_EDGE
         )
-        //绑定纹理
+        //生成 2D 纹理。参数 level 表示执行细节级别。0 是最基本的图像级别，n 表示第 N 级贴图细化级别。
+        GLES20.glTexImage2D(
+            GLES20.GL_TEXTURE_2D,
+            0,
+            GLES20.GL_RGBA,
+            bitmap.width,
+            bitmap.height,
+            0,
+            GLES20.GL_RGBA,
+            GLES20.GL_UNSIGNED_BYTE,
+            null
+        )
+        //绑定资源到被激活的纹理单元
         GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
     }
 
@@ -137,13 +150,18 @@ class BitmapDrawer(val textureId: Int, val bitmap: Bitmap) {
         GLES20.glEnableVertexAttribArray(coordinateHandle)
         GLES20.glVertexAttribPointer(coordinateHandle, 2, GLES20.GL_FLOAT, false, 0, textureBuffer)
 
-        textureHandle = GLES20.glGetUniformLocation(program, "uTexture")
-        enableAndBindTexture()
+        //纹理渲染
+        renderTexture()
+
+        //设置图片透明通道
+        GLES20.glEnable(GLES20.GL_BLEND)
+        GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ONE_MINUS_SRC_ALPHA)
 
         //绘制
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
 
         //释放资源
+        GLES20.glDisable(GLES20.GL_BLEND)
         GLES20.glDisableVertexAttribArray(positionHandle)
         GLES20.glDisableVertexAttribArray(coordinateHandle)
         GLES20.glDisableVertexAttribArray(textureHandle)
