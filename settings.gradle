@@ -1,3 +1,2 @@
 rootProject.name='AudioAndVideoPractice'
-include ':chapter1-1', ':chapter1-2', ':chapter2-1', ':chapter2-2', ':chapter3'
-include ':chapter4'
+include ':chapter1-1', ':chapter1-2', ':chapter2-1', ':chapter2-2', ':chapter3',':chapter4'

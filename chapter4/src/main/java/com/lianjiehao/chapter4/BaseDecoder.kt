@@ -2,6 +2,7 @@ package com.lianjiehao.chapter4
 
 import android.media.MediaCodec
 import android.media.MediaFormat
+import android.os.SystemClock
 import java.io.File
 import java.nio.ByteBuffer
 
@@ -72,10 +73,10 @@ abstract class BaseDecoder(private val mFilePath: String) : IDecoder {
                 waitDecode()
                 // ---------【同步时间矫正】-------------
                 //恢复同步的起始时间，即去除等待流失的时间
-                mStartTimeForSync = System.currentTimeMillis() - getCurTimeStamp()
+                mStartTimeForSync = SystemClock.elapsedRealtime() - getCurTimeStamp()
             }
             if (mStartTimeForSync == -1L) {
-                mStartTimeForSync = System.currentTimeMillis()
+                mStartTimeForSync = SystemClock.elapsedRealtime()
             }
             //【解码步骤：2. 将数据压入解码器输入缓冲】
             pushBufferToDecoder()
@@ -284,7 +285,7 @@ abstract class BaseDecoder(private val mFilePath: String) : IDecoder {
     }
 
     private fun sleepRender() {
-        val passTime = System.currentTimeMillis() - mStartTimeForSync
+        val passTime = SystemClock.elapsedRealtime() - mStartTimeForSync
         val curTime = getCurTimeStamp()
         if (curTime > passTime) {
             Thread.sleep(curTime - passTime)

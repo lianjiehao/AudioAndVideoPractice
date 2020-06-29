@@ -16,7 +16,8 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun initPlayer() {
-        val path = Environment.getExternalStorageDirectory().absolutePath + "/hero.mp4"
+//        val path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/WeiXin/hero.mp4"
+        val path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).absolutePath + "/hero.mp4"
 
         //创建线程池
         val threadPool = Executors.newFixedThreadPool(2)
