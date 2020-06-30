@@ -3,7 +3,6 @@ package com.lianjiehao.chapter4
 import android.media.MediaCodec
 import android.media.MediaFormat
 import android.os.SystemClock
-import java.io.File
 import java.nio.ByteBuffer
 
 /**
@@ -65,39 +64,44 @@ abstract class BaseDecoder(private val mFilePath: String) : IDecoder {
 
 
     final override fun run() {
-        //【解码步骤：1. 初始化，并启动解码器】
-        if (!init()) return
+        try {
+            //【解码步骤：1. 初始化，并启动解码器】
+            if (!init()) return
+            while (mIsRunning) {
+                if (mState != DecodeState.DECODING) {
+                    waitDecode()
+                    // ---------【同步时间矫正】-------------
+                    //恢复同步的起始时间，即去除等待流失的时间
+                    mStartTimeForSync = SystemClock.elapsedRealtime() - getCurTimeStamp()
+                }
+                if (mStartTimeForSync == -1L) {
+                    mStartTimeForSync = SystemClock.elapsedRealtime()
+                }
+                //【解码步骤：2. 将数据压入解码器输入缓冲】
+                pushBufferToDecoder()
+                //【解码步骤：3. 将解码好的数据从缓冲区拉取出来】
+                val index = pullBufferFromDecoder()
+                if (index >= 0) {
+                    sleepRender()
+                    //【解码步骤：4. 渲染】
+                    render(mOutputBuffers!![index], mBufferInfo)
+                    //【解码步骤：5. 释放输出缓冲】
+                    mCodec!!.releaseOutputBuffer(index, true)
+                }
+                //【解码步骤：6. 判断解码是否完成】
+                if (mBufferInfo.flags == MediaCodec.BUFFER_FLAG_END_OF_STREAM) {
+                    mState = DecodeState.FINISH
+                    mIsRunning = false
+                }
+            }
+        } catch (e: Exception) {
 
-        while (mIsRunning) {
-            if (mState != DecodeState.DECODING) {
-                waitDecode()
-                // ---------【同步时间矫正】-------------
-                //恢复同步的起始时间，即去除等待流失的时间
-                mStartTimeForSync = SystemClock.elapsedRealtime() - getCurTimeStamp()
-            }
-            if (mStartTimeForSync == -1L) {
-                mStartTimeForSync = SystemClock.elapsedRealtime()
-            }
-            //【解码步骤：2. 将数据压入解码器输入缓冲】
-            pushBufferToDecoder()
-            //【解码步骤：3. 将解码好的数据从缓冲区拉取出来】
-            val index = pullBufferFromDecoder()
-            if (index >= 0) {
-                sleepRender()
-                //【解码步骤：4. 渲染】
-                render(mOutputBuffers!![index], mBufferInfo)
-                //【解码步骤：5. 释放输出缓冲】
-                mCodec!!.releaseOutputBuffer(index, true)
-            }
-            //【解码步骤：6. 判断解码是否完成】
-            if (mBufferInfo.flags == MediaCodec.BUFFER_FLAG_END_OF_STREAM) {
-                mState = DecodeState.FINISH
-                mIsRunning = false
-            }
+        } finally {
+            doneDecode()
+            //【解码步骤：7. 释放解码器】
+            release()
         }
-        doneDecode()
-        //【解码步骤：7. 释放解码器】
-        release()
+
     }
 
 
@@ -139,8 +143,7 @@ abstract class BaseDecoder(private val mFilePath: String) : IDecoder {
 
     private fun init(): Boolean {
         //1.检查参数是否完整
-        if (mFilePath.isEmpty() || !File(mFilePath).exists()) {
-            logError("文件路径为空:${mFilePath}")
+        if (mFilePath == null || mFilePath.isEmpty()) {
             return false
         }
         //调用虚函数，检查子类参数是否完整
@@ -182,9 +185,7 @@ abstract class BaseDecoder(private val mFilePath: String) : IDecoder {
             val type = mExtractor!!.getFormat()!!.getString(MediaFormat.KEY_MIME)
             mCodec = MediaCodec.createDecoderByType(type)
             //2.配置解码器
-            if (!configCodec(mCodec!!, mExtractor!!.getFormat()!!)) {
-                waitDecode()
-            }
+            configCodec(mCodec!!, mExtractor!!.getFormat()!!)
             //3.启动解码器
             mCodec!!.start()
 
@@ -240,8 +241,9 @@ abstract class BaseDecoder(private val mFilePath: String) : IDecoder {
         return -1
     }
 
-    private fun release() {
+    fun release() {
         try {
+            mIsRunning = false
             mState = DecodeState.STOP
             mExtractor?.stop()
             mCodec?.stop()
